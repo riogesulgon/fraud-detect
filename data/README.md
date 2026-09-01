@@ -9,3 +9,7 @@ make kaggle-data
 ```
 
 The Kaggle page reports the dataset license as **CC0-1.0**. The downloaded payload is still intentionally not committed. Keep `kaggle-token.txt` outside the repository where possible; it is ignored as a safety net.
+
+## Adapter mapping
+
+The Kaggle loader maps `amount`, `merchant_category`, `ip_address_risk_score`, `customer_tenure_days`, `num_transactions_last_24h`, `failed_pin_attempts_24h`, and `hour_of_day` into the stable v1 API feature contract. `is_new_device` is derived from tenure under 30 days. Identifiers are excluded.
