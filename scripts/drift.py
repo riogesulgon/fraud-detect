@@ -7,11 +7,19 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.model import FEATURES, generate_data
+from src.kaggle_adapter import load_kaggle
 
 def main() -> None:
-    baseline, _ = generate_data(1000, 42)
-    recent, _ = generate_data(200, 99)
-    report = {"generated_at": datetime.now(timezone.utc).isoformat(), "features": {}}
+    kaggle_path = Path("data/raw/creditcard_fraud_synthetic.csv")
+    if kaggle_path.exists():
+        mapped, _ = load_kaggle(kaggle_path, sample_rows=100_000, seed=42)
+        baseline, recent = mapped[:1_000], mapped[-200:]
+        source = "kaggle"
+    else:
+        baseline, _ = generate_data(1000, 42)
+        recent, _ = generate_data(200, 99)
+        source = "synthetic"
+    report = {"generated_at": datetime.now(timezone.utc).isoformat(), "source": source, "features": {}}
     for feature in FEATURES:
         if isinstance(baseline[0][feature], bool):
             a = sum(bool(row[feature]) for row in baseline) / len(baseline)
