@@ -17,9 +17,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: risk-platform:release
       - uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          image-ref: risk-platform:release
           format: table
           exit-code: '1'
           severity: CRITICAL
