@@ -39,7 +39,7 @@ docker run -p 8000:8000 risk-platform:local
 A prebuilt image is published to GHCR on every `v*` tag:
 
 ```bash
-docker run -p 8000:8000 ghcr.io/riogesulgon/fraud-detect:v0.1.0
+docker run -p 8000:8000 ghcr.io/riogesulgon/fraud-detect:v0.1.1
 ```
 
 ## Model versions
