@@ -1,14 +1,22 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+import sys
+import threading
+import time
+import uuid
+from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "models" / "risk-model.joblib"
@@ -42,6 +50,80 @@ app = FastAPI(
 )
 _requests = 0
 _model: Any = None
+
+logger = logging.getLogger("risk_platform")
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(_handler)
+logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
+
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+RATE_LIMITED_PATHS = {"/v1/risk-score", "/v2/risk-score"}
+_rate_lock = threading.Lock()
+_rate_buckets: dict[str, deque[float]] = defaultdict(deque)
+_rate_limited_total = 0
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Per-client fixed-window rate limit on scoring endpoints (single-process demo)."""
+
+    async def dispatch(self, request: Request, call_next):
+        global _rate_limited_total
+        if request.url.path not in RATE_LIMITED_PATHS:
+            return await call_next(request)
+        client = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        with _rate_lock:
+            bucket = _rate_buckets.setdefault(client, deque())
+            while bucket and now - bucket[0] > 60:
+                bucket.popleft()
+            if len(bucket) >= RATE_LIMIT_PER_MINUTE:
+                _rate_limited_total += 1
+                logger.info(
+                    json.dumps(
+                        {
+                            "event": "rate_limited",
+                            "client": client,
+                            "path": request.url.path,
+                        }
+                    )
+                )
+                return JSONResponse(
+                    {"error": "rate limit exceeded, retry later"},
+                    status_code=429,
+                    headers={"Retry-After": "60"},
+                )
+            bucket.append(now)
+        return await call_next(request)
+
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    """Attach a request ID and emit one structured log line per request."""
+
+    async def dispatch(self, request: Request, call_next):
+        start = time.perf_counter()
+        request_id = (request.headers.get("x-request-id") or "")[:64] or uuid.uuid4().hex
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        if request.url.path not in {"/healthz", "/metrics"}:
+            logger.info(
+                json.dumps(
+                    {
+                        "event": "request",
+                        "request_id": request_id,
+                        "method": request.method,
+                        "path": request.url.path,
+                        "status": response.status_code,
+                        "duration_ms": round((time.perf_counter() - start) * 1000, 1),
+                    }
+                )
+            )
+        return response
+
+
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RequestContextMiddleware)
 
 
 def _load_model() -> Any:
@@ -92,7 +174,9 @@ def model_info() -> dict[str, Any]:
 def metrics() -> PlainTextResponse:
     version = _metadata()["model_version"]
     return PlainTextResponse(
-        f'# HELP risk_score_requests_total Total risk scoring requests.\n# TYPE risk_score_requests_total counter\nrisk_score_requests_total {_requests}\nmodel_version{{version="{version}"}} 1\n'
+        f"# HELP risk_score_requests_total Total risk scoring requests.\n# TYPE risk_score_requests_total counter\nrisk_score_requests_total {_requests}\n"
+        f"# HELP risk_score_requests_rate_limited_total Requests rejected by rate limiting.\n# TYPE risk_score_requests_rate_limited_total counter\nrisk_score_requests_rate_limited_total {_rate_limited_total}\n"
+        f'model_version{{version="{version}"}} 1\n'
     )
 
 
