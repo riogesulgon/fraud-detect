@@ -108,8 +108,8 @@ _full_artifact: dict[str, Any] | None = None
 
 
 class RiskV2Request(BaseModel):
-    transaction_id: str = Field(min_length=1, max_length=128)
-    customer_id: str = Field(min_length=1, max_length=128)
+    transaction_id: str | int = Field(min_length=1)
+    customer_id: str | int = Field(min_length=1)
     timestamp_seconds: int = Field(ge=0)
     hour_of_day: int = Field(ge=0, le=23)
     day_of_week: int = Field(ge=0, le=6)
@@ -123,7 +123,7 @@ class RiskV2Request(BaseModel):
     account_balance: float = Field(ge=0)
     income_band: int = Field(ge=0)
     merchant_category: str = Field(min_length=1, max_length=64)
-    merchant_id: str = Field(min_length=1, max_length=128)
+    merchant_id: str | int = Field(min_length=1)
     transaction_type: str = Field(min_length=1, max_length=64)
     card_present: int = Field(ge=0, le=1)
     device_type: str = Field(min_length=1, max_length=64)
