@@ -71,14 +71,15 @@ def healthz() -> dict[str, Any]:
 
 @app.get("/v1/model-info")
 def model_info() -> dict[str, Any]:
-    meta = _calibration_metadata() or _metadata()
+    base_meta = _metadata()
+    meta = _calibration_metadata() or base_meta
     metrics = meta.get("metrics", meta.get("calibrated", meta.get("selected_model", {})))
     return {
-        "model_version": meta["model_version"],
+        "model_version": meta.get("model_version", base_meta.get("model_version", "untrained")),
         "training_timestamp": meta.get("training_timestamp"),
         "metrics": metrics,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
-        "dataset": meta["dataset"],
+        "dataset": meta.get("dataset", base_meta.get("dataset", "unknown")),
         "decision_threshold": meta.get("decision_threshold", THRESHOLD),
         "calibration_method": meta.get("calibration_method"),
     }

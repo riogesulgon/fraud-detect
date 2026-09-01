@@ -93,6 +93,7 @@ def main() -> None:
     threshold = choose_recall_threshold(y_cal, calibrated_cal)
     result = {
         "dataset": "kaggle",
+        "model_version": "kaggle-full-calibrated",
         "training_timestamp": datetime.now(timezone.utc).isoformat(),
         "split": "chronological 60/20/20",
         "rows": n,
