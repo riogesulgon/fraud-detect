@@ -13,3 +13,7 @@ curl -X POST http://localhost:8000/v1/risk-score -H 'content-type: application/j
 ```
 
 See `SPEC.md` for the complete delivery plan.
+
+## Model tuning benchmark
+
+Run `python scripts/benchmark_full.py` to evaluate an imbalance-weighted HistGradientBoosting model on the full Kaggle feature set using a chronological 70/15/15 split. The benchmark is separate from the stable eight-field API adapter until its richer inference contract is explicitly versioned.
