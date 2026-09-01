@@ -5,7 +5,7 @@ data:
 train:
 	python scripts/train.py
 test:
-	ruff check . && pytest
+	ruff check . && pytest --cov=app --cov=src --cov-report=term-missing --cov-fail-under=80
 run:
 	uvicorn app.main:app --reload
 
