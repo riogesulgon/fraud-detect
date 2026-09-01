@@ -21,7 +21,9 @@ def validate_features(rows: list[dict]) -> pd.DataFrame:
         raise ValueError("country_risk_score must be between 0 and 1")
     if (frame["hour_utc"].lt(0) | frame["hour_utc"].gt(23)).any():
         raise ValueError("hour_utc must be between 0 and 23")
-    return frame[FEATURE_COLUMNS]
+    frame = frame[FEATURE_COLUMNS]
+    schema = pandera_schema()
+    return schema.validate(frame) if schema is not None else frame
 
 
 def pandera_schema():
