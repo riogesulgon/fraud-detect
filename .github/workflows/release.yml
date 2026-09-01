@@ -22,7 +22,7 @@ jobs:
           context: .
           load: true
           tags: risk-platform:release
-      - uses: aquasecurity/trivy-action@0.24.0
+      - uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: risk-platform:release
           format: table
