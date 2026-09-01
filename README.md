@@ -71,6 +71,7 @@ make drift-evidently   # compares earliest 60k vs latest 20k rows, writes report
 - Low precision at the operating point (~6.5 alerts per confirmed fraud at recall 41%): suited to a review queue, not automation. The report preserves the high-recall alternative (threshold 0.0110: recall 81%, precision 4.6%) for teams that prefer recall.
 - The operating threshold assumes an undetected fraud costs 20x a wasted manual review (documented in `reports/calibration.json`); the trade-off shifts with different cost assumptions.
 - The model card in `docs/model-card.md` documents both model paths, metrics, and honest limitations.
+- `docs/walkthrough.md` tells the end-to-end build story: decisions, breakages, and lessons.
 
 ## License
 
