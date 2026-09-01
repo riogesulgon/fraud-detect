@@ -19,4 +19,30 @@ jobs:
       - run: ruff format --check .
       - run: pytest -q
       - run: python scripts/train.py
-      - run: docker build -t mlops-risk-platform:ci .
+
+      - name: Generate calibration and benchmark reports
+        run: |
+          python scripts/calibrate.py
+          python scripts/benchmark_full.py
+
+      - name: Upload evaluation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-reports
+          path: |
+            reports/calibration.json
+            reports/full_feature_benchmark.json
+
+      - name: Container smoke test
+        run: |
+          docker build -t risk-platform:ci .
+          docker run -d -p 8000:8000 --name risk-ci risk-platform:ci
+          sleep 5
+          curl -fsS http://localhost:8000/healthz
+          curl -fsS -X POST http://localhost:8000/v1/risk-score \
+            -H 'content-type: application/json' \
+            -d '{"transaction_amount":145.5,"merchant_category":"electronics","country_risk_score":0.42,"account_age_days":730,"transaction_count_24h":3,"failed_auth_attempts_24h":0,"is_new_device":false,"hour_utc":14}'
+          curl -fsS -X POST http://localhost:8000/v2/risk-score \
+            -H 'content-type: application/json' \
+            -d '{"transaction_id":1,"customer_id":99,"timestamp_seconds":1700000000,"hour_of_day":14,"day_of_week":2,"is_weekend":0,"is_night":0,"amount":145.5,"avg_amount_30d":100,"amount_to_avg_ratio":1.455,"customer_age":35,"customer_tenure_days":730,"account_balance":5000,"income_band":3,"merchant_category":"electronics","merchant_id":123,"transaction_type":"online","card_present":0,"device_type":"web_desktop","num_transactions_last_1h":1,"num_transactions_last_24h":3,"minutes_since_last_transaction":120,"distance_from_home_km":4,"distance_from_last_transaction_km":2,"is_foreign_transaction":0,"ip_address_risk_score":0.42,"failed_pin_attempts_24h":0}'
+          docker rm -f risk-ci
