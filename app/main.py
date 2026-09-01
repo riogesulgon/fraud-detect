@@ -51,7 +51,7 @@ def healthz() -> dict[str, Any]:
 @app.get("/v1/model-info")
 def model_info() -> dict[str, Any]:
     meta = _metadata()
-    return {"model_version": meta["model_version"], "training_timestamp": None, "metrics": meta["metrics"], "feature_schema_version": FEATURE_SCHEMA_VERSION, "dataset": meta["dataset"], "decision_threshold": THRESHOLD}
+    return {"model_version": meta["model_version"], "training_timestamp": None, "metrics": meta["metrics"], "feature_schema_version": FEATURE_SCHEMA_VERSION, "dataset": meta["dataset"], "decision_threshold": meta.get("decision_threshold", DEFAULT_THRESHOLD)}
 
 @app.get("/metrics", response_class=PlainTextResponse)
 def metrics() -> PlainTextResponse:
