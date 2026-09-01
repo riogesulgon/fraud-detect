@@ -1,7 +1,7 @@
 # MLOps Risk Platform
 
 [![CI](https://github.com/riogesulgon/fraud-detect/actions/workflows/ci.yml/badge.svg)](https://github.com/riogesulgon/fraud-detect/actions/workflows/ci.yml)
-[![Release](https://github.com/riogesulgon/fraud-detect/actions/workflows/release.yml/badge.svg)](https://github.com/riogesulgon/actions/workflows/release.yml)
+[![Release](https://github.com/riogesulgon/fraud-detect/actions/workflows/release.yml/badge.svg)](https://github.com/riogesulgon/fraud-detect/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A transaction-risk scoring demonstrator trained on the [Synthetic Credit Card Fraud (Interpretable 1M)](https://www.kaggle.com/datasets/harshjain123/synthetic-credit-card-fraud-interpretable) dataset (CC0-1.0, 1M rows, ~1.9% fraud). It is not suitable for live financial decisions; it targets a review-queue setting, not approve/decline.
