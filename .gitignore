@@ -13,3 +13,5 @@ models/*.joblib
 data/raw/
 kaggle-token.txt
 data/raw/
+
+!models/full-feature-calibrated.joblib

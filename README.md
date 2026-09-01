@@ -17,3 +17,7 @@ See `SPEC.md` for the complete delivery plan.
 ## Model tuning benchmark
 
 Run `python scripts/benchmark_full.py` to evaluate an imbalance-weighted HistGradientBoosting model on the full Kaggle feature set using a chronological 70/15/15 split. The benchmark is separate from the stable eight-field API adapter until its richer inference contract is explicitly versioned.
+
+## Calibrated model artifact
+
+`models/full-feature-calibrated.joblib` is the calibrated full-feature Kaggle model (approximately 200 KB) and is committed for reproducible local serving. Its SHA-256 checksum at training time is `1c43c6374bb0f9cc83c14862c44de64cdeb9d46cca980505dc955c2e952a79cb`. It was trained by `scripts/calibrate.py` from the CC0-licensed Kaggle dataset, using a chronological 60/20/20 split, class weighting, and Platt sigmoid calibration. Regenerate it with `make kaggle-data && make calibrate` when the dataset changes. Verify the checksum with `sha256sum models/full-feature-calibrated.joblib`.
