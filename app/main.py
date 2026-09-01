@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "models" / "risk-model.joblib"
 EVALUATION_PATH = ROOT / "reports" / "evaluation.json"
+CALIBRATION_PATH = ROOT / "reports" / "calibration.json"
 THRESHOLD = 0.65
 FEATURE_SCHEMA_VERSION = "1.0"
 
@@ -48,6 +49,12 @@ def _load_model() -> Any:
     return _model
 
 
+def _calibration_metadata() -> dict[str, Any]:
+    if CALIBRATION_PATH.exists():
+        return json.loads(CALIBRATION_PATH.read_text())
+    return {}
+
+
 def _metadata() -> dict[str, Any]:
     if EVALUATION_PATH.exists():
         return json.loads(EVALUATION_PATH.read_text())
@@ -64,8 +71,8 @@ def healthz() -> dict[str, Any]:
 
 @app.get("/v1/model-info")
 def model_info() -> dict[str, Any]:
-    meta = _metadata()
-    metrics = meta.get("metrics", meta.get("selected_model", {}))
+    meta = _calibration_metadata() or _metadata()
+    metrics = meta.get("metrics", meta.get("calibrated", meta.get("selected_model", {})))
     return {
         "model_version": meta["model_version"],
         "training_timestamp": meta.get("training_timestamp"),
