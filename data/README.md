@@ -8,4 +8,4 @@ The recommended larger dataset is [Synthetic Credit Card Fraud (Interpretable 1M
 make kaggle-data
 ```
 
-The Kaggle payload is intentionally not committed. Review the dataset's current Kaggle license and terms before redistribution or publication. No real customer or payment-rail data may be added to this repository.
+The Kaggle page reports the dataset license as **CC0-1.0**. The downloaded payload is still intentionally not committed. Keep `kaggle-token.txt` outside the repository where possible; it is ignored as a safety net.
