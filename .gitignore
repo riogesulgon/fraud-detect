@@ -1,7 +1,8 @@
+.venv/
 __pycache__/
 .pytest_cache/
-.venv/
-*.egg-info/
 models/*.joblib
-reports/
+*.egg-info/
 .env
+reports/
+mlruns/
