@@ -1,8 +1,11 @@
 """Create a deterministic, dependency-light drift report for synthetic traffic."""
 from __future__ import annotations
 import json
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.model import FEATURES, generate_data
 
 def main() -> None:
