@@ -20,15 +20,30 @@ jobs:
       - run: python scripts/train.py
       - run: pytest -q
 
+      - name: Fetch Kaggle dataset when credentials are available
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          if [ -z "$KAGGLE_USERNAME" ] || [ -z "$KAGGLE_KEY" ]; then
+            echo "Kaggle credentials not configured; skipping dataset fetch and model reports."
+            exit 0
+          fi
+          python -m pip install -q kaggle
+          python scripts/download_kaggle.py
+
       - name: Generate calibration and benchmark reports
+        if: ${{ hashFiles('data/raw/creditcard_fraud_synthetic.csv') != '' }}
         run: |
           python scripts/calibrate.py
           python scripts/benchmark_full.py
 
       - name: Upload evaluation artifacts
+        if: ${{ hashFiles('data/raw/creditcard_fraud_synthetic.csv') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: model-reports
+          if-no-files-found: ignore
           path: |
             reports/calibration.json
             reports/full_feature_benchmark.json
