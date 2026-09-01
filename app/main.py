@@ -51,7 +51,7 @@ def healthz() -> dict[str, Any]:
 @app.get("/v1/model-info")
 def model_info() -> dict[str, Any]:
     meta = _metadata()
-    return {"model_version": meta["model_version"], "training_timestamp": None, "metrics": meta["metrics"], "feature_schema_version": FEATURE_SCHEMA_VERSION, "dataset": meta["dataset"], "decision_threshold": meta.get("decision_threshold", DEFAULT_THRESHOLD)}
+    return {"model_version": meta["model_version"], "training_timestamp": None, "metrics": meta["metrics"], "feature_schema_version": FEATURE_SCHEMA_VERSION, "dataset": meta["dataset"], "decision_threshold": meta.get("decision_threshold", THRESHOLD)}
 
 @app.get("/metrics", response_class=PlainTextResponse)
 def metrics() -> PlainTextResponse:
@@ -67,5 +67,6 @@ def risk_score(req: RiskRequest) -> RiskResponse:
     _requests += 1
     score = float(model.predict_proba([req.model_dump()])[0, 1])
     score = round(min(max(score, 0.0), 1.0), 6)
-    band = "high" if score >= THRESHOLD else "medium" if score >= 0.35 else "low"
-    return RiskResponse(risk_score=score, risk_band=band, model_version=_metadata()["model_version"], decision_threshold=THRESHOLD)
+    threshold = float(_metadata().get("decision_threshold", THRESHOLD))
+    band = "high" if score >= threshold else "medium" if score >= 0.35 else "low"
+    return RiskResponse(risk_score=score, risk_band=band, model_version=_metadata()["model_version"], decision_threshold=threshold)
