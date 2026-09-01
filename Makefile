@@ -13,3 +13,6 @@ drift:
 	python scripts/drift.py
 kaggle-data:
 	python scripts/download_kaggle.py
+
+calibrate:
+	python scripts/calibrate.py
