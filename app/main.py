@@ -68,11 +68,12 @@ def model_info() -> dict[str, Any]:
     metrics = meta.get("metrics", meta.get("selected_model", {}))
     return {
         "model_version": meta["model_version"],
-        "training_timestamp": None,
+        "training_timestamp": meta.get("training_timestamp"),
         "metrics": metrics,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "dataset": meta["dataset"],
         "decision_threshold": meta.get("decision_threshold", THRESHOLD),
+        "calibration_method": meta.get("calibration_method"),
     }
 
 
