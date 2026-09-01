@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlops-risk-platform"
+version = "0.1.0"
+description = "Deterministic synthetic transaction-risk scoring demonstrator"
+requires-python = ">=3.11"
+dependencies = ["fastapi>=0.110,<1", "uvicorn[standard]>=0.29,<1", "numpy>=1.26,<3", "scikit-learn>=1.4,<2", "joblib>=1.3,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "httpx>=0.27,<1", "ruff>=0.6,<1", "mypy>=1.10,<2"]
+
+[tool.setuptools.packages.find]
+include = ["app*", "src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
