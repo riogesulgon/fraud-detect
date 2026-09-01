@@ -8,3 +8,6 @@ test:
 	ruff check . && pytest
 run:
 	uvicorn app.main:app --reload
+
+drift:
+	python scripts/drift.py
