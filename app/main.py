@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "risk_model.joblib"
@@ -42,9 +43,9 @@ def healthz() -> dict[str, str]:
 def model_info() -> dict[str, Any]:
     return {"model_version": VERSION, "training_timestamp": None, "metrics": {}, "feature_schema_version": "1"}
 
-@app.get("/metrics")
-def metrics() -> str:
-    return f'# HELP risk_score_requests_total Total risk scoring requests.\n# TYPE risk_score_requests_total counter\nrisk_score_requests_total {_requests}\nmodel_version{{version="{VERSION}"}} 1\n'
+@app.get("/metrics", response_class=PlainTextResponse)
+def metrics() -> PlainTextResponse:
+    return PlainTextResponse(f'# HELP risk_score_requests_total Total risk scoring requests.\n# TYPE risk_score_requests_total counter\nrisk_score_requests_total {_requests}\nmodel_version{{version="{VERSION}"}} 1\n')
 
 @app.post("/v1/risk-score", response_model=RiskResponse)
 def risk_score(req: RiskRequest) -> RiskResponse:
