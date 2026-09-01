@@ -1,13 +1,17 @@
+from __future__ import annotations
+import json
 from pathlib import Path
 from typing import Any
+import joblib
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "risk_model.joblib"
-VERSION = "0.1.0"
+ROOT = Path(__file__).resolve().parent.parent
+MODEL_PATH = ROOT / "models" / "risk-model.joblib"
+EVALUATION_PATH = ROOT / "reports" / "evaluation.json"
 THRESHOLD = 0.65
-FEATURES = ["transaction_amount", "merchant_category", "country_risk_score", "account_age_days", "transaction_count_24h", "failed_auth_attempts_24h", "is_new_device", "hour_utc"]
+FEATURE_SCHEMA_VERSION = "1.0"
 
 class RiskRequest(BaseModel):
     transaction_amount: float = Field(ge=0)
@@ -29,28 +33,39 @@ app = FastAPI(title="MLOps Risk Platform", description="Demonstrator only; not s
 _requests = 0
 _model: Any = None
 
-def _score(req: RiskRequest) -> float:
-    base = 0.05 + min(req.transaction_amount / 5000, 0.25) + req.country_risk_score * 0.25
-    base += min(req.failed_auth_attempts_24h * 0.1, 0.3) + (0.15 if req.is_new_device else 0)
-    base += min(req.transaction_count_24h * 0.02, 0.15)
-    return round(min(max(base, 0.0), 1.0), 6)
+def _load_model() -> Any:
+    global _model
+    if _model is None and MODEL_PATH.exists():
+        _model = joblib.load(MODEL_PATH)
+    return _model
+
+def _metadata() -> dict[str, Any]:
+    if EVALUATION_PATH.exists():
+        return json.loads(EVALUATION_PATH.read_text())
+    return {"dataset": "unknown", "model_version": "untrained", "metrics": {}}
 
 @app.get("/healthz")
-def healthz() -> dict[str, str]:
-    return {"status": "ok", "model_loaded": "true"}
+def healthz() -> dict[str, Any]:
+    return {"status": "ok" if _load_model() is not None else "degraded", "model_loaded": _load_model() is not None}
 
 @app.get("/v1/model-info")
 def model_info() -> dict[str, Any]:
-    return {"model_version": VERSION, "training_timestamp": None, "metrics": {}, "feature_schema_version": "1"}
+    meta = _metadata()
+    return {"model_version": meta["model_version"], "training_timestamp": None, "metrics": meta["metrics"], "feature_schema_version": FEATURE_SCHEMA_VERSION, "dataset": meta["dataset"], "decision_threshold": THRESHOLD}
 
 @app.get("/metrics", response_class=PlainTextResponse)
 def metrics() -> PlainTextResponse:
-    return PlainTextResponse(f'# HELP risk_score_requests_total Total risk scoring requests.\n# TYPE risk_score_requests_total counter\nrisk_score_requests_total {_requests}\nmodel_version{{version="{VERSION}"}} 1\n')
+    version = _metadata()["model_version"]
+    return PlainTextResponse(f'# HELP risk_score_requests_total Total risk scoring requests.\n# TYPE risk_score_requests_total counter\nrisk_score_requests_total {_requests}\nmodel_version{{version="{version}"}} 1\n')
 
 @app.post("/v1/risk-score", response_model=RiskResponse)
 def risk_score(req: RiskRequest) -> RiskResponse:
     global _requests
+    model = _load_model()
+    if model is None:
+        raise RuntimeError("model artifact is not available")
     _requests += 1
-    score = _score(req)
+    score = float(model.predict_proba([req.model_dump()])[0, 1])
+    score = round(min(max(score, 0.0), 1.0), 6)
     band = "high" if score >= THRESHOLD else "medium" if score >= 0.35 else "low"
-    return RiskResponse(risk_score=score, risk_band=band, model_version=VERSION, decision_threshold=THRESHOLD)
+    return RiskResponse(risk_score=score, risk_band=band, model_version=_metadata()["model_version"], decision_threshold=THRESHOLD)
