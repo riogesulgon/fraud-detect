@@ -20,13 +20,13 @@ def main() -> None:
         rows, labels = generate_data(1000, 42)
     validate_features(rows)
     train_rows, test_rows, train_labels, test_labels = train_test_split(rows, labels, test_size=0.2, random_state=42, stratify=labels)
-    info = train(train_rows, train_labels, Path("models/risk-model.joblib"))
+    info = train(train_rows, train_labels, Path("models/risk-model.joblib"), dataset_name="kaggle" if kaggle_path.exists() else "synthetic")
     model = joblib.load("models/risk-model.joblib")
     predicted = model.predict(test_rows)
     probabilities = model.predict_proba(test_rows)[:, 1]
     metrics = {"precision": precision_score(test_labels, predicted, zero_division=0), "recall": recall_score(test_labels, predicted, zero_division=0), "f1": f1_score(test_labels, predicted, zero_division=0), "roc_auc": roc_auc_score(test_labels, probabilities)}
     Path("reports").mkdir(exist_ok=True)
-    Path("reports/evaluation.json").write_text(json.dumps({"model_version": info.model_version, "metrics": metrics}, indent=2))
+    Path("reports/evaluation.json").write_text(json.dumps({"dataset": "kaggle" if kaggle_path.exists() else "synthetic", "model_version": info.model_version, "metrics": metrics}, indent=2))
     try:
         import mlflow
         with mlflow.start_run(run_name="kaggle-risk-baseline" if kaggle_path.exists() else "synthetic-risk-baseline"):

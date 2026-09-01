@@ -36,13 +36,13 @@ def generate_data(n: int = 1000, seed: int = 42) -> tuple[list[dict], np.ndarray
     return rows, (scores > 1.8).astype(int)
 
 
-def train(rows: list[dict], labels: np.ndarray, path: Path = MODEL_PATH) -> ModelInfo:
+def train(rows: list[dict], labels: np.ndarray, path: Path = MODEL_PATH, dataset_name: str = "synthetic") -> ModelInfo:
     pre = DictVectorizer(sparse=False)
     pipe = Pipeline([("preprocess", pre), ("classifier", HistGradientBoostingClassifier(max_iter=80, random_state=42))])
     pipe.fit(rows, labels)
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipe, path)
-    version = "synthetic-" + hashlib.sha1(json.dumps(FEATURES).encode()).hexdigest()[:8]
+    version = dataset_name + "-" + hashlib.sha1(json.dumps(FEATURES).encode()).hexdigest()[:8]
     return ModelInfo(version, "1.0", 0.65, len(rows), {})
 
 
