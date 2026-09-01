@@ -16,3 +16,6 @@ kaggle-data:
 
 calibrate:
 	python scripts/calibrate.py
+
+drift-evidently:
+	python scripts/drift_evidently.py
