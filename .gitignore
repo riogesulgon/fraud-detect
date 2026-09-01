@@ -6,5 +6,7 @@ models/*.joblib
 .env
 reports/
 mlruns/
+.coverage
+
 
 models/*.joblib
