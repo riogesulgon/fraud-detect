@@ -23,6 +23,9 @@ from sklearn.metrics import (
 
 DATA = Path("data/raw/creditcard_fraud_synthetic.csv")
 REPORT = Path("reports/calibration.json")
+# Review-queue cost model: an undetected fraud costs 20x a wasted manual review.
+COST_FN = 20.0
+COST_FP = 1.0
 
 
 def expected_calibration_error(y: np.ndarray, p: np.ndarray, bins: int = 10) -> float:
@@ -52,6 +55,36 @@ def choose_recall_threshold(y: np.ndarray, p: np.ndarray, target_recall: float =
             )
         ]
     )
+
+
+def expected_cost(
+    y: np.ndarray,
+    p: np.ndarray,
+    threshold: float,
+    cost_fn: float = COST_FN,
+    cost_fp: float = COST_FP,
+) -> dict[str, float]:
+    pred = p >= threshold
+    tp, fp = int((pred & (y == 1)).sum()), int((pred & (y == 0)).sum())
+    fn = int((~pred & (y == 1)).sum())
+    alerts = tp + fp
+    return {
+        "expected_cost": float(cost_fn * fn + cost_fp * fp),
+        "alerts": float(alerts),
+        "alerts_per_1000": float(1000 * alerts / max(len(y), 1)),
+        "fraud_captured": float(tp / max(tp + fn, 1)),
+    }
+
+
+def choose_cost_threshold(
+    y: np.ndarray, p: np.ndarray, cost_fn: float = COST_FN, cost_fp: float = COST_FP
+) -> float:
+    precision, recall, thresholds = precision_recall_curve(y, p)
+    tp = recall[:-1] * y.sum()
+    fp = tp * (1 - precision[:-1]) / np.maximum(precision[:-1], 1e-12)
+    fn = y.sum() - tp
+    costs = cost_fn * fn + cost_fp * fp
+    return float(thresholds[int(np.argmin(costs))])
 
 
 def operating_metrics(y: np.ndarray, p: np.ndarray, threshold: float) -> dict[str, float]:
@@ -93,7 +126,17 @@ def main() -> None:
     raw_test = base.predict_proba(x_test)[:, 1]
     calibrated_cal = calibrator.predict_proba(raw_cal.reshape(-1, 1))[:, 1]
     calibrated_test = calibrator.predict_proba(raw_test.reshape(-1, 1))[:, 1]
-    threshold = choose_recall_threshold(y_cal, calibrated_cal)
+    recall_threshold = choose_recall_threshold(y_cal, calibrated_cal)
+    cost_threshold = choose_cost_threshold(y_cal, calibrated_cal)
+    recall_cost = expected_cost(y_cal, calibrated_cal, recall_threshold)["expected_cost"]
+    cost_cost = expected_cost(y_cal, calibrated_cal, cost_threshold)["expected_cost"]
+    use_cost_based = cost_cost < recall_cost
+    threshold = cost_threshold if use_cost_based else recall_threshold
+    objective = (
+        "minimize expected cost (FN=20x FP), chosen on validation"
+        if use_cost_based
+        else "maximize validation precision subject to recall >= 0.80 (cost model did not improve)"
+    )
     result = {
         "dataset": "kaggle",
         "model_version": "kaggle-full-calibrated",
@@ -102,10 +145,41 @@ def main() -> None:
         "split": "chronological 60/20/20",
         "rows": n,
         "calibration_method": "platt_sigmoid",
-        "operating_objective": "maximize validation precision subject to recall >= 0.80",
+        "cost_model": {"false_negative": COST_FN, "false_positive": COST_FP},
+        "operating_objective": objective,
         "operating_threshold": threshold,
-        "validation_operating_metrics": operating_metrics(y_cal, calibrated_cal, threshold),
-        "test_operating_metrics": operating_metrics(y_test, calibrated_test, threshold),
+        "threshold_candidates": {
+            "recall_constrained": {
+                "threshold": recall_threshold,
+                "validation": {
+                    **operating_metrics(y_cal, calibrated_cal, recall_threshold),
+                    **expected_cost(y_cal, calibrated_cal, recall_threshold),
+                },
+                "test": {
+                    **operating_metrics(y_test, calibrated_test, recall_threshold),
+                    **expected_cost(y_test, calibrated_test, recall_threshold),
+                },
+            },
+            "cost_based": {
+                "threshold": cost_threshold,
+                "validation": {
+                    **operating_metrics(y_cal, calibrated_cal, cost_threshold),
+                    **expected_cost(y_cal, calibrated_cal, cost_threshold),
+                },
+                "test": {
+                    **operating_metrics(y_test, calibrated_test, cost_threshold),
+                    **expected_cost(y_test, calibrated_test, cost_threshold),
+                },
+            },
+        },
+        "validation_operating_metrics": {
+            **operating_metrics(y_cal, calibrated_cal, threshold),
+            **expected_cost(y_cal, calibrated_cal, threshold),
+        },
+        "test_operating_metrics": {
+            **operating_metrics(y_test, calibrated_test, threshold),
+            **expected_cost(y_test, calibrated_test, threshold),
+        },
         "raw": {
             "brier": float(brier_score_loss(y_test, raw_test)),
             "ece": expected_calibration_error(y_test, raw_test),

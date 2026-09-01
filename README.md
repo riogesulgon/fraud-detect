@@ -47,7 +47,7 @@ docker run -p 8000:8000 ghcr.io/riogesulgon/fraud-detect:v0.1.1
 | Version | Features | Calibration | Test recall | Test precision | ROC-AUC | PR-AUC |
 |---|---|---|---|---|---|---|
 | v1 (`kaggle-*`) | 8-field adapter of the 27 Kaggle features | none | see `reports/evaluation.json` | — | — | — |
-| v2 (`kaggle-full-calibrated`) | all 27 | Platt sigmoid, threshold 0.0110 | 81.3% | 4.56% | 0.8314 | 0.1996 |
+| v2 (`kaggle-full-calibrated`) | all 27 | Platt sigmoid, cost-based threshold 0.0772 | 40.6% | 15.27% | 0.8314 | 0.1996 |
 
 `/v1/model-info` exposes model metadata including the training-data SHA-256 (`dataset_sha256`), so any served artifact can be tied to the exact data bytes used for training. Note the hash covers file bytes, not row sampling.
 
@@ -68,7 +68,8 @@ make drift-evidently   # compares earliest 60k vs latest 20k rows, writes report
 ## Limitations
 
 - Synthetic data; patterns are not real fraud patterns.
-- Low precision at the operating point (~22 alerts per confirmed fraud): suited to a review queue, not automation.
+- Low precision at the operating point (~6.5 alerts per confirmed fraud at recall 41%): suited to a review queue, not automation. The report preserves the high-recall alternative (threshold 0.0110: recall 81%, precision 4.6%) for teams that prefer recall.
+- The operating threshold assumes an undetected fraud costs 20x a wasted manual review (documented in `reports/calibration.json`); the trade-off shifts with different cost assumptions.
 - The model card in `docs/model-card.md` documents both model paths, metrics, and honest limitations.
 
 ## License
