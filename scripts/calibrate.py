@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -64,6 +65,7 @@ def operating_metrics(y: np.ndarray, p: np.ndarray, threshold: float) -> dict[st
 
 def main() -> None:
     frame = pd.read_csv(DATA).sort_values("timestamp_seconds").reset_index(drop=True)
+    dataset_sha256 = hashlib.sha256(DATA.read_bytes()).hexdigest()
     frame = frame.iloc[:: max(1, len(frame) // 150_000)].copy()
     y = frame.pop("is_fraud").astype(int).to_numpy()
     x = frame.drop(columns=["transaction_id", "customer_id"], errors="ignore")
@@ -94,6 +96,7 @@ def main() -> None:
     result = {
         "dataset": "kaggle",
         "model_version": "kaggle-full-calibrated",
+        "dataset_sha256": dataset_sha256,
         "training_timestamp": datetime.now(timezone.utc).isoformat(),
         "split": "chronological 60/20/20",
         "rows": n,

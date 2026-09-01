@@ -80,6 +80,7 @@ def model_info() -> dict[str, Any]:
         "metrics": metrics,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "dataset": meta.get("dataset", base_meta.get("dataset", "unknown")),
+        "dataset_sha256": meta.get("dataset_sha256"),
         "decision_threshold": meta.get("decision_threshold", THRESHOLD),
         "calibration_method": meta.get("calibration_method"),
     }
