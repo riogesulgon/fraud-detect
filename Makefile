@@ -11,3 +11,5 @@ run:
 
 drift:
 	python scripts/drift.py
+kaggle-data:
+	python scripts/download_kaggle.py

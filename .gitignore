@@ -10,3 +10,4 @@ mlruns/
 
 
 models/*.joblib
+data/raw/
