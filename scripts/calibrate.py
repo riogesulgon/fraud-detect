@@ -115,7 +115,12 @@ def main() -> None:
     REPORT.parent.mkdir(exist_ok=True)
     REPORT.write_text(json.dumps(result, indent=2))
     joblib.dump(
-        {"base_model": base, "calibrator": calibrator, "threshold": threshold},
+        {
+            "base_model": base,
+            "calibrator": calibrator,
+            "threshold": threshold,
+            "feature_columns": list(x.columns),
+        },
         "models/full-feature-calibrated.joblib",
     )
     print(json.dumps(result, indent=2))
