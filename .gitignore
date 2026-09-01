@@ -6,3 +6,5 @@ models/*.joblib
 .env
 reports/
 mlruns/
+
+models/*.joblib
