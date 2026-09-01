@@ -26,8 +26,8 @@ def main() -> None:
     report = Report([DataDriftPreset()])
     snapshot = report.run(reference_data=baseline, current_data=recent)
     OUT_DIR.mkdir(exist_ok=True)
-    snapshot.save_html(OUT_DIR / "drift_evidently.html")
-    snapshot.save_json(OUT_DIR / "drift_evidently.json")
+    snapshot.save_html(str(OUT_DIR / "drift_evidently.html"))
+    snapshot.save_json(str(OUT_DIR / "drift_evidently.json"))
     print(f"saved {OUT_DIR / 'drift_evidently.html'} and {OUT_DIR / 'drift_evidently.json'}")
 
 
