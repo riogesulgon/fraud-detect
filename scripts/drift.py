@@ -1,13 +1,16 @@
 """Create a deterministic, dependency-light drift report for synthetic traffic."""
+
 from __future__ import annotations
+
 import json
-from datetime import datetime, timezone
-from pathlib import Path
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.model import FEATURES, generate_data
 from src.kaggle_adapter import load_kaggle
+from src.model import FEATURES, generate_data
+
 
 def main() -> None:
     kaggle_path = Path("data/raw/creditcard_fraud_synthetic.csv")
@@ -19,7 +22,7 @@ def main() -> None:
         baseline, _ = generate_data(1000, 42)
         recent, _ = generate_data(200, 99)
         source = "synthetic"
-    report = {"generated_at": datetime.now(timezone.utc).isoformat(), "source": source, "features": {}}
+    report = {"generated_at": datetime.now(UTC).isoformat(), "source": source, "features": {}}
     for feature in FEATURES:
         if isinstance(baseline[0][feature], bool):
             a = sum(bool(row[feature]) for row in baseline) / len(baseline)
@@ -34,6 +37,7 @@ def main() -> None:
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(report, indent=2))
     print(f"wrote {out}")
+
 
 if __name__ == "__main__":
     main()

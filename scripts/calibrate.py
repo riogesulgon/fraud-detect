@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
@@ -14,10 +15,10 @@ from sklearn.metrics import (
     average_precision_score,
     brier_score_loss,
     f1_score,
+    precision_recall_curve,
     precision_score,
     recall_score,
     roc_auc_score,
-    precision_recall_curve,
 )
 
 DATA = Path("data/raw/creditcard_fraud_synthetic.csv")
@@ -27,7 +28,7 @@ REPORT = Path("reports/calibration.json")
 def expected_calibration_error(y: np.ndarray, p: np.ndarray, bins: int = 10) -> float:
     edges = np.linspace(0, 1, bins + 1)
     error = 0.0
-    for low, high in zip(edges[:-1], edges[1:]):
+    for low, high in itertools.pairwise(edges):
         mask = (p >= low) & (p < high if high < 1 else p <= high)
         if mask.any():
             error += mask.mean() * abs(float(p[mask].mean()) - float(y[mask].mean()))
@@ -97,7 +98,7 @@ def main() -> None:
         "dataset": "kaggle",
         "model_version": "kaggle-full-calibrated",
         "dataset_sha256": dataset_sha256,
-        "training_timestamp": datetime.now(timezone.utc).isoformat(),
+        "training_timestamp": datetime.now(UTC).isoformat(),
         "split": "chronological 60/20/20",
         "rows": n,
         "calibration_method": "platt_sigmoid",

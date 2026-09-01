@@ -1,7 +1,9 @@
 """Adapter from the Kaggle 27-feature dataset to the v1 API feature contract."""
 
 from __future__ import annotations
+
 from pathlib import Path
+
 import pandas as pd
 
 KAGGLE_COLUMNS = [

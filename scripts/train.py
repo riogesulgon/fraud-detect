@@ -12,8 +12,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     average_precision_score,
     f1_score,
-    precision_score,
     precision_recall_curve,
+    precision_score,
     recall_score,
     roc_auc_score,
 )
@@ -25,7 +25,9 @@ from src.kaggle_adapter import load_kaggle
 from src.model import generate_data, train
 
 
-def metrics_at_threshold(labels: np.ndarray, probabilities: np.ndarray, threshold: float) -> dict[str, float]:
+def metrics_at_threshold(
+    labels: np.ndarray, probabilities: np.ndarray, threshold: float
+) -> dict[str, float]:
     predicted = (probabilities >= threshold).astype(int)
     return {
         "precision": float(precision_score(labels, predicted, zero_division=0)),
@@ -56,20 +58,37 @@ def main() -> None:
         dataset = "synthetic"
     validate_features(rows)
     labels = np.asarray(labels_series, dtype=int)
-    train_rows, holdout_rows, train_labels, holdout_labels = train_test_split(rows, labels, test_size=0.3, random_state=42, stratify=labels)
-    validation_rows, test_rows, validation_labels, test_labels = train_test_split(holdout_rows, holdout_labels, test_size=2 / 3, random_state=42, stratify=holdout_labels)
+    train_rows, holdout_rows, train_labels, holdout_labels = train_test_split(
+        rows, labels, test_size=0.3, random_state=42, stratify=labels
+    )
+    validation_rows, test_rows, validation_labels, test_labels = train_test_split(
+        holdout_rows, holdout_labels, test_size=2 / 3, random_state=42, stratify=holdout_labels
+    )
 
     model_path = Path("models/risk-model.joblib")
     train(train_rows, train_labels, Path("models/benchmark.joblib"), dataset_name=dataset)
     gradient = joblib.load("models/benchmark.joblib")
     validation_prob = gradient.predict_proba(validation_rows)[:, 1]
     threshold = choose_threshold(validation_labels, validation_prob)
-    final_info = train(train_rows + list(validation_rows), np.concatenate([train_labels, validation_labels]), model_path, dataset_name=dataset)
+    final_info = train(
+        train_rows + list(validation_rows),
+        np.concatenate([train_labels, validation_labels]),
+        model_path,
+        dataset_name=dataset,
+    )
     final_model = joblib.load(model_path)
     test_prob = final_model.predict_proba(test_rows)[:, 1]
 
     vectorizer = DictVectorizer(sparse=False)
-    logistic = Pipeline([("vectorizer", vectorizer), ("classifier", LogisticRegression(max_iter=300, class_weight="balanced", random_state=42))])
+    logistic = Pipeline(
+        [
+            ("vectorizer", vectorizer),
+            (
+                "classifier",
+                LogisticRegression(max_iter=300, class_weight="balanced", random_state=42),
+            ),
+        ]
+    )
     logistic.fit(train_rows, train_labels)
     logistic_prob = logistic.predict_proba(test_rows)[:, 1]
     results = {
